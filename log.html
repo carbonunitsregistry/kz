@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head><meta charset="UTF-8" /><title>Log</title><script src="https://cdn.tailwindcss.com"></script></head>
+<head><meta charset="UTF-8" /><title>Журнал</title><script src="https://cdn.tailwindcss.com"></script></head>
 <body class="bg-white text-black font-sans">
 
 <header class="flex justify-between items-center p-6 border-b bg-white">
@@ -10,27 +10,26 @@
     <a href="registry.html" class="hover:underline">Реестр</a>
     <a href="create.html" class="hover:underline">Регистрация</a>
     <a href="transfer.html" class="hover:underline">Перемещение</a>
-    <a href="log.html" class="hover:underline">Журнал</a>
+    <a href="log.html" class="hover:underline font-bold text-green-600">Журнал</a>
     <a href="history.html" class="hover:underline">История</a>
   </nav>
-  <button class="bg-gray-100 text-black px-4 py-2 rounded hover:bg-gray-200">Войти</button>
 </header>
 
-<main class="max-w-4xl mx-auto px-4 py-8">
+<main class="max-w-5xl mx-auto px-4 py-8">
 
-<h1 class="text-2xl font-bold mb-4">Журнал</h1>
-<table class="table-auto w-full border">
-  <thead class="bg-gray-100"><tr>
-    <th class="p-2">#</th><th class="p-2">ID</th><th class="p-2">Дата</th><th class="p-2">Первый</th><th class="p-2">Текущий</th><th class="p-2">Истечение</th>
-  </tr></thead>
-  <tbody id="logTable"></tbody>
-</table>
+<h1 class="text-2xl font-bold mb-4">Журнал всех единиц</h1>
+<div class="flex gap-4 mb-4">
+  <input id="filterInput" type="text" placeholder="Поиск..." class="px-3 py-2 border rounded w-full" />
+  <button id="sortToggle" class="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300">Сначала новые</button>
+</div>
+<ul id="logList" class="space-y-1 mb-6 text-sm"></ul>
+<div id="pagination" class="flex gap-2 flex-wrap"></div>
 
 </main>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCfCnM8w7DZKZN3dXZgDHUo9RSx1K2y6mo",
@@ -39,118 +38,87 @@
     projectId: "carbonunitsregistry",
     storageBucket: "carbonunitsregistry.firebasestorage.app",
     messagingSenderId: "1096076583239",
-    appId: "1:1096076583239:web:9a3b9425c66b927981ec62",
-    measurementId: "G-EJCZMFZQ0G"
+    appId: "1:1096076583239:web:9a3b9425c66b927981ec62"
   };
 
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
-  const path = window.location.pathname;
+  const logRef = ref(db, 'units');
+  const logList = document.getElementById('logList');
+  const pagination = document.getElementById('pagination');
+  const filterInput = document.getElementById('filterInput');
+  const sortBtn = document.getElementById('sortToggle');
 
-  if (path.includes("create.html")) {
-    document.getElementById('createCompanyBtn').addEventListener('click', () => {
-      const name = document.getElementById('companyName').value.trim();
-      const id = document.getElementById('companyID').value.trim();
-      if (!name || !id) return;
-      push(ref(db, 'companies'), { name, id });
-      push(ref(db, 'history'), { action: `Создана компания ${name} (ID: ${id})`, timestamp: new Date().toISOString() });
+  let allEntries = [];
+  let filteredEntries = [];
+  let currentPage = 1;
+  const perPage = 20;
+  let sortAsc = false;
+
+  function renderPage(page) {
+    logList.innerHTML = '';
+    const start = (page - 1) * perPage;
+    const pageEntries = filteredEntries.slice(start, start + perPage);
+    pageEntries.forEach(entry => {
+      const li = document.createElement('li');
+      li.className = "border-b p-2 text-sm";
+      li.textContent = `${entry.id} — ${entry.type} — ${entry.issueDate || ''} — ${entry.firstOwner || ''} — ${entry.currentOwner || ''} — ${entry.expiryYear || '–'}`;
+      logList.appendChild(li);
     });
-    const out = document.getElementById('companyList');
-    onValue(ref(db, 'companies'), snap => {
-      out.innerHTML = '';
-      snap.forEach(c => {
-        const d = c.val();
-        const el = document.createElement('li');
-        el.textContent = `${d.name} (${d.id})`;
-        el.className = "border p-2 rounded";
-        out.appendChild(el);
-      });
-    });
+    renderPaginationControls();
   }
 
-  if (path.includes("registry.html")) {
-    const out = document.getElementById('companyList');
-    onValue(ref(db, 'companies'), snap => {
-      out.innerHTML = '';
-      snap.forEach(c => {
-        const d = c.val();
-        const el = document.createElement('li');
-        el.textContent = `${d.name} (${d.id})`;
-        el.className = "border p-2 rounded";
-        out.appendChild(el);
-      });
-    });
+  function renderPaginationControls() {
+    pagination.innerHTML = '';
+    const pageCount = Math.ceil(filteredEntries.length / perPage);
+    for (let i = 1; i <= pageCount; i++) {
+      const btn = document.createElement('button');
+      btn.textContent = i;
+      btn.className = `px-3 py-1 border rounded ${i === currentPage ? 'bg-green-600 text-white' : 'bg-white hover:bg-gray-100'}`;
+      btn.onclick = () => {
+        currentPage = i;
+        renderPage(currentPage);
+      };
+      pagination.appendChild(btn);
+    }
   }
 
-  if (path.includes("transfer.html")) {
-    document.getElementById('transferBtn').addEventListener('click', () => {
-      const from = document.getElementById('from').value;
-      const to = document.getElementById('to').value;
-      const qty = parseInt(document.getElementById('qty').value);
-      const unitsRef = ref(db, 'units');
-      let count = 0;
-      onValue(unitsRef, snap => {
-        const updates = {};
-        snap.forEach(child => {
-          const d = child.val();
-          if (d.currentOwner === from && count < qty) {
-            updates[child.key + '/currentOwner'] = to;
-            push(ref(db, 'history'), { action: `Переведена единица ${d.id} от ${from} к ${to}`, timestamp: new Date().toISOString() });
-            count++;
-          }
-        });
-        update(unitsRef, updates);
-      }, { onlyOnce: true });
-    });
+  function applyFilterAndSort() {
+    const keyword = filterInput.value.toLowerCase();
+    filteredEntries = allEntries.filter(e =>
+      e.id?.toLowerCase().includes(keyword) ||
+      e.firstOwner?.toLowerCase().includes(keyword) ||
+      e.currentOwner?.toLowerCase().includes(keyword) ||
+      e.type?.toLowerCase().includes(keyword)
+    );
+
+    filteredEntries.sort((a, b) =>
+      sortAsc
+        ? new Date(a.issueDate) - new Date(b.issueDate)
+        : new Date(b.issueDate) - new Date(a.issueDate)
+    );
+
+    renderPage(1);
   }
 
-  if (path.includes("log.html")) {
-    const out = document.getElementById('logTable');
-    onValue(ref(db, 'units'), snap => {
-      out.innerHTML = '';
-      let i = 1;
-      snap.forEach(child => {
-        const u = child.val();
-        out.innerHTML += `<tr class="border-b"><td class="p-2">${i++}</td><td class="p-2">${u.id}</td><td class="p-2">${u.issuedDate}</td><td class="p-2">${u.firstOwner}</td><td class="p-2">${u.currentOwner}</td><td class="p-2">${u.expiryYear || '-'}</td></tr>`;
-      });
-    });
-  }
+  sortBtn.onclick = () => {
+    sortAsc = !sortAsc;
+    sortBtn.textContent = sortAsc ? "Сначала старые" : "Сначала новые";
+    applyFilterAndSort();
+  };
 
-  if (path.includes("issue.html")) {
-    document.getElementById('issueUnitsBtn').addEventListener('click', () => {
-      const companyID = document.getElementById('targetCompany').value;
-      const quantity = parseInt(document.getElementById('quantity').value);
-      const type = document.getElementById('unitType').value;
-      const expiryYear = document.getElementById('expiryYear').value;
-      const dateStr = new Date().toISOString().split('T')[0];
-      for (let i = 0; i < quantity; i++) {
-        const id = `${type}-${dateStr.replaceAll('-', '')}-${Date.now() + i}`;
-        const unit = {
-          id,
-          issuedDate: dateStr,
-          firstOwner: companyID,
-          currentOwner: companyID,
-          expiryYear
-        };
-        push(ref(db, 'units'), unit);
-        push(ref(db, 'history'), { action: `Выпущена единица ${id} для компании ${companyID}`, timestamp: new Date().toISOString() });
-      }
-    });
-  }
+  filterInput.oninput = () => {
+    applyFilterAndSort();
+  };
 
-  if (path.includes("history.html")) {
-    const list = document.getElementById('historyList');
-    onValue(ref(db, 'history'), snap => {
-      list.innerHTML = '';
-      snap.forEach(c => {
-        const d = c.val();
-        const li = document.createElement('li');
-        li.className = "border-b p-1 text-sm";
-        li.textContent = `${new Date(d.timestamp).toLocaleString()} — ${d.action}`;
-        list.appendChild(li);
-      });
+  onValue(logRef, (snapshot) => {
+    allEntries = [];
+    snapshot.forEach((child) => {
+      const val = child.val();
+      allEntries.push(val);
     });
-  }
+    applyFilterAndSort();
+  });
 </script>
 
 </body>
