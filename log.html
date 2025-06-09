@@ -28,6 +28,7 @@
         <th class="p-2">Первый владелец<br><input id="filterFirstOwner" class="border rounded px-1 py-0.5 w-full" /></th>
         <th class="p-2">Текущий владелец<br><input id="filterCurrentOwner" class="border rounded px-1 py-0.5 w-full" /></th>
         <th class="p-2">Истечение<br><input id="filterExpiry" class="border rounded px-1 py-0.5 w-full" /></th>
+        <th class="p-2">Действия</th>
       </tr>
     </thead>
     <tbody id="logList"></tbody>
@@ -39,7 +40,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCfCnM8w7DZKZN3dXZgDHUo9RSx1K2y6mo",
@@ -53,9 +54,7 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
-  const logRef = ref(db, 'units');
-  const logList = document.getElementById('logList');
-  const pagination = document.getElementById('pagination');
+  const unitsRef = ref(db, 'units');
 
   const filters = {
     id: document.getElementById('filterID'),
@@ -65,8 +64,12 @@
     expiry: document.getElementById('filterExpiry')
   };
 
+  const logList = document.getElementById('logList');
+  const pagination = document.getElementById('pagination');
+
   let allEntries = [];
   let filteredEntries = [];
+  let keys = [];
   let currentPage = 1;
   const perPage = 20;
 
@@ -75,6 +78,7 @@
     const start = (page - 1) * perPage;
     const pageEntries = filteredEntries.slice(start, start + perPage);
     pageEntries.forEach((entry, index) => {
+      const key = entry._key;
       const row = document.createElement('tr');
       row.className = "border-b";
       row.innerHTML = `
@@ -84,6 +88,10 @@
         <td class="p-2">${entry.firstOwner || ''}</td>
         <td class="p-2">${entry.currentOwner || ''}</td>
         <td class="p-2">${entry.expiryYear || '–'}</td>
+        <td class="p-2">
+          ${entry.cancelled ? '<span class="text-red-600 font-semibold">Аннулировано</span>' :
+            `<button onclick="cancelUnit('${key}')" class="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700">Аннулировать</button>`}
+        </td>
       `;
       logList.appendChild(row);
     });
@@ -123,14 +131,24 @@
     renderPage(1);
   }
 
+  window.cancelUnit = async function(key) {
+    const confirmDelete = confirm("Вы уверены, что хотите аннулировать эту единицу?");
+    if (!confirmDelete) return;
+    const unitRef = ref(db, 'units/' + key);
+    await update(unitRef, { cancelled: true });
+    alert("Углеродная единица аннулирована.");
+  };
+
   Object.values(filters).forEach(input => {
     input.addEventListener('input', applyFilters);
   });
 
-  onValue(logRef, (snapshot) => {
+  onValue(unitsRef, (snapshot) => {
     allEntries = [];
     snapshot.forEach(child => {
-      allEntries.push(child.val());
+      const val = child.val();
+      val._key = child.key;
+      allEntries.push(val);
     });
     applyFilters();
   });
