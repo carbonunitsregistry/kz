@@ -2,20 +2,23 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>История операций</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+  <title>History</title>
+  <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/water.css@2/out/water.css'>
 </head>
 <body>
 <nav>
-  <a href="index.html">Компании</a> |
+  <a href="index.html">Компании</a>
+  <a href="issue.html">Выпуск</a>
+  <a href="transfer.html">Перемещение</a>
+  <a href="log.html">Журнал</a>
   <a href="history.html">История</a>
 </nav>
-<h1>История действий</h1>
-<ul id="historyList"></ul>
+<h1>История операций</h1>
+<ul id='historyList'></ul>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCfCnM8w7DZKZN3dXZgDHUo9RSx1K2y6mo",
@@ -31,27 +34,25 @@
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
 
-  const companyBtn = document.getElementById('createCompanyBtn');
-  const nameInput = document.getElementById('companyName');
-  const idInput = document.getElementById('companyID');
-  const list = document.getElementById('companyList');
-  const historyList = document.getElementById('historyList');
+  const path = window.location.pathname;
 
-  if (companyBtn) {
-    companyBtn.addEventListener('click', () => {
-      const name = nameInput.value.trim();
-      const id = idInput.value.trim();
+  // === Компании ===
+  if (path.includes("index.html") || path.endsWith("/")) {
+    document.getElementById('createCompanyBtn').addEventListener('click', () => {
+      const name = document.getElementById('companyName').value.trim();
+      const id = document.getElementById('companyID').value.trim();
       if (!name || !id) return;
+
       push(ref(db, 'companies'), { name, id, createdAt: new Date().toISOString() });
       push(ref(db, 'history'), { action: `Создана компания ${name} (ID: ${id})`, timestamp: new Date().toISOString() });
-      nameInput.value = '';
-      idInput.value = '';
-    });
-  }
 
-  if (list) {
+      document.getElementById('companyName').value = '';
+      document.getElementById('companyID').value = '';
+    });
+
     const companiesRef = ref(db, 'companies');
     onValue(companiesRef, (snapshot) => {
+      const list = document.getElementById('companyList');
       list.innerHTML = '';
       snapshot.forEach((child) => {
         const data = child.val();
@@ -62,15 +63,83 @@
     });
   }
 
-  if (historyList) {
+  // === Выпуск ===
+  if (path.includes("issue.html")) {
+    document.getElementById('issueUnitsBtn').addEventListener('click', () => {
+      const companyID = document.getElementById('targetCompany').value;
+      const quantity = parseInt(document.getElementById('quantity').value);
+      const type = document.getElementById('unitType').value;
+      const expiryYear = document.getElementById('expiryYear').value;
+      const dateStr = new Date().toISOString().split('T')[0];
+
+      for (let i = 0; i < quantity; i++) {
+        const id = `${type}-${dateStr.replaceAll('-', '')}-${Date.now() + i}`;
+        const unit = {
+          id,
+          issuedDate: dateStr,
+          firstOwner: companyID,
+          currentOwner: companyID,
+          expiryYear
+        };
+        push(ref(db, 'units'), unit);
+        push(ref(db, 'history'), { action: `Выпущена единица ${id} для компании ${companyID}`, timestamp: new Date().toISOString() });
+      }
+    });
+  }
+
+  // === Перемещение ===
+  if (path.includes("transfer.html")) {
+    document.getElementById('transferBtn').addEventListener('click', () => {
+      const from = document.getElementById('from').value;
+      const to = document.getElementById('to').value;
+      const qty = parseInt(document.getElementById('qty').value);
+      const unitsRef = ref(db, 'units');
+
+      let count = 0;
+      onValue(unitsRef, (snapshot) => {
+        const updates = {};
+        snapshot.forEach((child) => {
+          const data = child.val();
+          if (data.currentOwner === from && count < qty) {
+            updates[child.key + '/currentOwner'] = to;
+            push(ref(db, 'history'), { action: `Переведена единица ${data.id} от ${from} к ${to}`, timestamp: new Date().toISOString() });
+            count++;
+          }
+        });
+        update(unitsRef, updates);
+      }, { onlyOnce: true });
+    });
+  }
+
+  // === Журнал ===
+  if (path.includes("log.html")) {
+    const logRef = ref(db, 'units');
+    onValue(logRef, (snapshot) => {
+      const table = document.getElementById('logTable');
+      table.innerHTML = '';
+      let i = 1;
+      snapshot.forEach((child) => {
+        const u = child.val();
+        const row = `<tr>
+          <td>${i++}</td><td>${u.id}</td><td>${u.issuedDate}</td>
+          <td>${u.firstOwner}</td><td>${u.currentOwner}</td><td>${u.expiryYear || '-'}</td>
+        </tr>`;
+        table.innerHTML += row;
+      });
+    });
+  }
+
+  // === История ===
+  if (path.includes("history.html")) {
     const historyRef = ref(db, 'history');
     onValue(historyRef, (snapshot) => {
-      historyList.innerHTML = '';
+      const list = document.getElementById('historyList');
+      list.innerHTML = '';
       snapshot.forEach((child) => {
         const entry = child.val();
         const li = document.createElement('li');
         li.textContent = `${new Date(entry.timestamp).toLocaleString()} — ${entry.action}`;
-        historyList.appendChild(li);
+        list.appendChild(li);
       });
     });
   }
