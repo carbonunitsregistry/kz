@@ -2,18 +2,107 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Выпуск углеродных единиц</title>
-  <link rel="stylesheet" href="css/style.css">
+  <title>Выпуск единиц</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
 </head>
 <body>
 <nav>
-  <a href="index.html">Компании</a>
-  <a href="issue.html">Выпуск</a>
-  <a href="transfer.html">Перемещение</a>
-  <a href="log.html">Журнал</a>
+  <a href="index.html">Компании</a> |
+  <a href="issue.html">Выпуск</a> |
+  <a href="transfer.html">Перемещение</a> |
   <a href="history.html">История</a>
 </nav>
 <h1>Выпуск углеродных единиц</h1>
-<input id='targetCompany' placeholder='ID компании'><input id='quantity' type='number' placeholder='Количество'><select id='unitType'><option value='KZ'>Квота</option><option value='OF'>Офсет</option><option value='INT'>Международная</option></select><input id='expiryYear' placeholder='Год истечения (опционально)'><button onclick='issueUnits()'>Выпустить</button><ul id='issuedUnits'></ul><script src='js/issue.js'></script>
+<input id="issueCompany" placeholder="ID компании">
+<input id="issueQty" type="number" placeholder="Количество">
+<select id="issueType">
+  <option value="KZ">Квота</option>
+  <option value="OF">Офсет</option>
+  <option value="INT">Международная</option>
+</select>
+<input id="issueExpiry" placeholder="Год истечения (опционально)">
+<button id="issueBtn">Выпустить</button>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, push, onValue, set, update, get, child } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCfCnM8w7DZKZN3dXZgDHUo9RSx1K2y6mo",
+    authDomain: "carbonunitsregistry.firebaseapp.com",
+    databaseURL: "https://carbonunitsregistry-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "carbonunitsregistry",
+    storageBucket: "carbonunitsregistry.firebasestorage.app",
+    messagingSenderId: "1096076583239",
+    appId: "1:1096076583239:web:9a3b9425c66b927981ec62",
+    measurementId: "G-EJCZMFZQ0G"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  const logHistory = (text) => {
+    push(ref(db, 'history'), {
+      action: text,
+      timestamp: new Date().toISOString()
+    });
+  };
+
+  // ====== ISSUE PAGE ======
+  const issueBtn = document.getElementById('issueBtn');
+  if (issueBtn) {
+    issueBtn.addEventListener('click', async () => {
+      const companyID = document.getElementById('issueCompany').value;
+      const quantity = parseInt(document.getElementById('issueQty').value);
+      const type = document.getElementById('issueType').value;
+      const expiry = document.getElementById('issueExpiry').value;
+      if (!companyID || !quantity || quantity <= 0) return;
+
+      const unitsRef = ref(db, 'units');
+      for (let i = 0; i < quantity; i++) {
+        const id = `${type}-${Date.now()}-${Math.floor(Math.random()*10000)}`;
+        await push(unitsRef, {
+          id,
+          type,
+          issuedDate: new Date().toISOString(),
+          firstOwner: companyID,
+          currentOwner: companyID,
+          expiryYear: expiry || ""
+        });
+        logHistory(`Выпущена единица ${id} для компании ${companyID}`);
+      }
+    });
+  }
+
+  // ====== TRANSFER PAGE ======
+  const transferBtn = document.getElementById('transferBtn');
+  if (transferBtn) {
+    transferBtn.addEventListener('click', async () => {
+      const fromID = document.getElementById('fromCompany').value.trim();
+      const toID = document.getElementById('toCompany').value.trim();
+      const qty = parseInt(document.getElementById('transferQty').value);
+      if (!fromID || !toID || qty <= 0) return;
+
+      const dbRef = ref(db);
+      const snapshot = await get(child(dbRef, 'units'));
+      if (!snapshot.exists()) return;
+
+      let updated = 0;
+      const updates = {};
+      snapshot.forEach((childSnap) => {
+        const unit = childSnap.val();
+        if (unit.currentOwner === fromID && updated < qty) {
+          updates[`/units/${childSnap.key}/currentOwner`] = toID;
+          logHistory(`Единица ${unit.id} перемещена от ${fromID} к ${toID}`);
+          updated++;
+        }
+      });
+      if (updated > 0) {
+        await update(ref(db), updates);
+      }
+    });
+  }
+</script>
+
 </body>
 </html>
