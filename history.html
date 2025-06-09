@@ -18,6 +18,9 @@
 <main class="max-w-4xl mx-auto px-4 py-8">
 
 <h1 class="text-2xl font-bold mb-4">История операций</h1>
+<div class="mb-4">
+  <button id="sortToggle" class="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300">Сначала новые</button>
+</div>
 <ul id="historyList" class="space-y-1 mb-6"></ul>
 <div id="pagination" class="flex gap-2 flex-wrap"></div>
 
@@ -42,10 +45,12 @@
   const historyRef = ref(db, 'history');
   const historyList = document.getElementById('historyList');
   const pagination = document.getElementById('pagination');
+  const sortBtn = document.getElementById('sortToggle');
 
   let allEntries = [];
   let currentPage = 1;
   const perPage = 20;
+  let sortAsc = false;
 
   function renderPage(page) {
     historyList.innerHTML = '';
@@ -57,7 +62,6 @@
       li.textContent = `${new Date(entry.timestamp).toLocaleString()} — ${entry.action}`;
       historyList.appendChild(li);
     });
-
     renderPaginationControls();
   }
 
@@ -75,6 +79,15 @@
       pagination.appendChild(btn);
     }
   }
+
+  sortBtn.onclick = () => {
+    sortAsc = !sortAsc;
+    sortBtn.textContent = sortAsc ? "Сначала старые" : "Сначала новые";
+    allEntries.sort((a, b) => sortAsc
+      ? new Date(a.timestamp) - new Date(b.timestamp)
+      : new Date(b.timestamp) - new Date(a.timestamp));
+    renderPage(1);
+  };
 
   onValue(historyRef, (snapshot) => {
     allEntries = [];
