@@ -3,11 +3,10 @@
 <head><meta charset="UTF-8" /><title>Реестр</title><script src="https://cdn.tailwindcss.com"></script></head>
 <body class="bg-white text-black font-sans">
 
-<header class="flex justify-between items-center p-6 border-b bg-white">
-  <div class="text-lg font-bold">РЕЕСТР УГЛЕРОДНЫХ-ЕДИНИЦ</div>
-  <nav class="space-x-6 hidden md:flex">
+<header class="flex justify-center items-center p-6 border-b bg-white">
+  <nav class="space-x-8 text-lg font-medium">
     <a href="index.html" class="hover:underline">Главная</a>
-    <a href="registry.html" class="hover:underline font-bold text-green-600">Реестр</a>
+    <a href="registry.html" class="hover:underline text-green-600 font-bold">Реестр</a>
     <a href="create.html" class="hover:underline">Регистрация</a>
     <a href="transfer.html" class="hover:underline">Перемещение</a>
     <a href="log.html" class="hover:underline">Журнал</a>
@@ -16,11 +15,11 @@
 </header>
 
 
-<main class="max-w-6xl mx-auto px-4 py-8">
-  <h1 class="text-2xl font-bold mb-6">Реестр компаний</h1>
+<main class="max-w-5xl mx-auto px-4 py-8 text-center">
+  <h1 class="text-3xl font-bold mb-6">Реестр компаний</h1>
   <div class="overflow-x-auto">
-    <table class="min-w-full border text-left text-sm">
-      <thead class="bg-gray-100 border-b">
+    <table class="min-w-full mx-auto border text-left text-sm">
+      <thead class="bg-gray-100 border-b text-gray-700">
         <tr>
           <th class="p-2">Компания</th>
           <th class="p-2">БИН</th>
@@ -51,17 +50,17 @@
   const db = getDatabase(app);
 
   const registryTable = document.getElementById('registryTable');
-
   let unitCount = {};
-  let companyNames = {};
+  let companyData = {};
 
   function updateTable() {
     registryTable.innerHTML = '';
     Object.keys(unitCount).forEach(id => {
+      const name = companyData[id]?.name || "(неизвестно)";
       const row = document.createElement('tr');
       row.className = "border-b";
       row.innerHTML = `
-        <td class="p-2">${companyNames[id] || ''}</td>
+        <td class="p-2">${name}</td>
         <td class="p-2">${id}</td>
         <td class="p-2">${unitCount[id]}</td>
       `;
@@ -71,9 +70,10 @@
 
   const companiesRef = ref(db, 'companies');
   onValue(companiesRef, (snapshot) => {
-    companyNames = {};
+    companyData = {};
     snapshot.forEach(company => {
-      companyNames[company.key] = company.val().name;
+      const val = company.val();
+      companyData[val.id] = { name: val.name };
     });
     updateTable();
   });
@@ -83,11 +83,8 @@
     unitCount = {};
     snapshot.forEach(child => {
       const unit = child.val();
-      if (!unit.cancelled) {
-        const owner = unit.currentOwner;
-        if (owner) {
-          unitCount[owner] = (unitCount[owner] || 0) + 1;
-        }
+      if (!unit.cancelled && unit.currentOwner) {
+        unitCount[unit.currentOwner] = (unitCount[unit.currentOwner] || 0) + 1;
       }
     });
     updateTable();
