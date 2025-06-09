@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><meta charset="UTF-8"><title>Перемещение</title></head>
+<body>
+<nav>
+  <a href="index.html">Компании</a> |
+  <a href="issue.html">Выпуск единиц</a> |
+  <a href="transfer.html">Перемещение</a> |
+  <a href="log.html">Журнал</a>
+</nav>
+<h1>Перемещение единиц</h1>
+<input id="from" placeholder="Отправитель (ID компании)">
+<input id="to" placeholder="Получатель (ID компании)">
+<input id="qty" type="number" placeholder="Количество">
+<button onclick="transfer()">Перевести</button>
+<ul id="transferLog"></ul>
+<script src="js/transfer.js"></script>
+</body>
+</html>

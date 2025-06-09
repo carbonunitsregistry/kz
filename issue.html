@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head><meta charset="UTF-8"><title>Выпуск единиц</title></head>
+<body>
+<nav>
+  <a href="index.html">Компании</a> |
+  <a href="issue.html">Выпуск единиц</a> |
+  <a href="transfer.html">Перемещение</a> |
+  <a href="log.html">Журнал</a>
+</nav>
+<h1>Выпуск углеродных единиц</h1>
+<input id="targetCompany" placeholder="ID компании">
+<input id="quantity" type="number" placeholder="Количество">
+<select id="unitType">
+  <option value="KZ">Квота</option>
+  <option value="OF">Офсет</option>
+  <option value="INT">Международная</option>
+</select>
+<input id="expiryYear" placeholder="Год истечения (опционально)">
+<button onclick="issueUnits()">Выпустить</button>
+<ul id="issuedUnits"></ul>
+<script src="js/issue.js"></script>
+</body>
+</html>
