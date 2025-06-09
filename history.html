@@ -3,17 +3,78 @@
 <head>
   <meta charset="UTF-8">
   <title>История операций</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
 </head>
 <body>
 <nav>
-  <a href="index.html">Компании</a>
-  <a href="issue.html">Выпуск</a>
-  <a href="transfer.html">Перемещение</a>
-  <a href="log.html">Журнал</a>
+  <a href="index.html">Компании</a> |
   <a href="history.html">История</a>
 </nav>
-<h1>История операций</h1>
-<ul id='historyList'></ul><script src='js/history.js'></script>
+<h1>История действий</h1>
+<ul id="historyList"></ul>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCfCnM8w7DZKZN3dXZgDHUo9RSx1K2y6mo",
+    authDomain: "carbonunitsregistry.firebaseapp.com",
+    databaseURL: "https://carbonunitsregistry-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "carbonunitsregistry",
+    storageBucket: "carbonunitsregistry.firebasestorage.app",
+    messagingSenderId: "1096076583239",
+    appId: "1:1096076583239:web:9a3b9425c66b927981ec62",
+    measurementId: "G-EJCZMFZQ0G"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  const companyBtn = document.getElementById('createCompanyBtn');
+  const nameInput = document.getElementById('companyName');
+  const idInput = document.getElementById('companyID');
+  const list = document.getElementById('companyList');
+  const historyList = document.getElementById('historyList');
+
+  if (companyBtn) {
+    companyBtn.addEventListener('click', () => {
+      const name = nameInput.value.trim();
+      const id = idInput.value.trim();
+      if (!name || !id) return;
+      push(ref(db, 'companies'), { name, id, createdAt: new Date().toISOString() });
+      push(ref(db, 'history'), { action: `Создана компания ${name} (ID: ${id})`, timestamp: new Date().toISOString() });
+      nameInput.value = '';
+      idInput.value = '';
+    });
+  }
+
+  if (list) {
+    const companiesRef = ref(db, 'companies');
+    onValue(companiesRef, (snapshot) => {
+      list.innerHTML = '';
+      snapshot.forEach((child) => {
+        const data = child.val();
+        const li = document.createElement('li');
+        li.textContent = `${data.name} (${data.id})`;
+        list.appendChild(li);
+      });
+    });
+  }
+
+  if (historyList) {
+    const historyRef = ref(db, 'history');
+    onValue(historyRef, (snapshot) => {
+      historyList.innerHTML = '';
+      snapshot.forEach((child) => {
+        const entry = child.val();
+        const li = document.createElement('li');
+        li.textContent = `${new Date(entry.timestamp).toLocaleString()} — ${entry.action}`;
+        historyList.appendChild(li);
+      });
+    });
+  }
+</script>
+
 </body>
 </html>
