@@ -25,6 +25,7 @@
   <input id="qty" type="number" class="border p-2 rounded w-full" placeholder="Количество">
   <button id="transferBtn" class="bg-yellow-600 text-white px-4 py-2 rounded">Перевести</button>
 </div>
+<div id="statusMessage" class="hidden mt-4 text-green-600 font-semibold"></div>
 
 </main>
 
@@ -39,82 +40,20 @@
     projectId: "carbonunitsregistry",
     storageBucket: "carbonunitsregistry.firebasestorage.app",
     messagingSenderId: "1096076583239",
-    appId: "1:1096076583239:web:9a3b9425c66b927981ec62",
-    measurementId: "G-EJCZMFZQ0G"
+    appId: "1:1096076583239:web:9a3b9425c66b927981ec62"
   };
 
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
   const path = window.location.pathname;
 
-  if (path.includes("create.html")) {
-    document.getElementById('createCompanyBtn').addEventListener('click', () => {
-      const name = document.getElementById('companyName').value.trim();
-      const id = document.getElementById('companyID').value.trim();
-      if (!name || !id) return;
-      push(ref(db, 'companies'), { name, id });
-      push(ref(db, 'history'), { action: `Создана компания ${name} (ID: ${id})`, timestamp: new Date().toISOString() });
-    });
-    const out = document.getElementById('companyList');
-    onValue(ref(db, 'companies'), snap => {
-      out.innerHTML = '';
-      snap.forEach(c => {
-        const d = c.val();
-        const el = document.createElement('li');
-        el.textContent = `${d.name} (${d.id})`;
-        el.className = "border p-2 rounded";
-        out.appendChild(el);
-      });
-    });
-  }
-
-  if (path.includes("registry.html")) {
-    const out = document.getElementById('companyList');
-    onValue(ref(db, 'companies'), snap => {
-      out.innerHTML = '';
-      snap.forEach(c => {
-        const d = c.val();
-        const el = document.createElement('li');
-        el.textContent = `${d.name} (${d.id})`;
-        el.className = "border p-2 rounded";
-        out.appendChild(el);
-      });
-    });
-  }
-
-  if (path.includes("transfer.html")) {
-    document.getElementById('transferBtn').addEventListener('click', () => {
-      const from = document.getElementById('from').value;
-      const to = document.getElementById('to').value;
-      const qty = parseInt(document.getElementById('qty').value);
-      const unitsRef = ref(db, 'units');
-      let count = 0;
-      onValue(unitsRef, snap => {
-        const updates = {};
-        snap.forEach(child => {
-          const d = child.val();
-          if (d.currentOwner === from && count < qty) {
-            updates[child.key + '/currentOwner'] = to;
-            push(ref(db, 'history'), { action: `Переведена единица ${d.id} от ${from} к ${to}`, timestamp: new Date().toISOString() });
-            count++;
-          }
-        });
-        update(unitsRef, updates);
-      }, { onlyOnce: true });
-    });
-  }
-
-  if (path.includes("log.html")) {
-    const out = document.getElementById('logTable');
-    onValue(ref(db, 'units'), snap => {
-      out.innerHTML = '';
-      let i = 1;
-      snap.forEach(child => {
-        const u = child.val();
-        out.innerHTML += `<tr class="border-b"><td class="p-2">${i++}</td><td class="p-2">${u.id}</td><td class="p-2">${u.issuedDate}</td><td class="p-2">${u.firstOwner}</td><td class="p-2">${u.currentOwner}</td><td class="p-2">${u.expiryYear || '-'}</td></tr>`;
-      });
-    });
-  }
+  const showMessage = (msg) => {
+    const el = document.getElementById("statusMessage");
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.remove("hidden");
+    setTimeout(() => el.classList.add("hidden"), 5000);
+  };
 
   if (path.includes("issue.html")) {
     document.getElementById('issueUnitsBtn').addEventListener('click', () => {
@@ -135,20 +74,30 @@
         push(ref(db, 'units'), unit);
         push(ref(db, 'history'), { action: `Выпущена единица ${id} для компании ${companyID}`, timestamp: new Date().toISOString() });
       }
+      showMessage(`Выпущено ${quantity} единиц`);
     });
   }
 
-  if (path.includes("history.html")) {
-    const list = document.getElementById('historyList');
-    onValue(ref(db, 'history'), snap => {
-      list.innerHTML = '';
-      snap.forEach(c => {
-        const d = c.val();
-        const li = document.createElement('li');
-        li.className = "border-b p-1 text-sm";
-        li.textContent = `${new Date(d.timestamp).toLocaleString()} — ${d.action}`;
-        list.appendChild(li);
-      });
+  if (path.includes("transfer.html")) {
+    document.getElementById('transferBtn').addEventListener('click', () => {
+      const from = document.getElementById('from').value;
+      const to = document.getElementById('to').value;
+      const qty = parseInt(document.getElementById('qty').value);
+      const unitsRef = ref(db, 'units');
+      let count = 0;
+      onValue(unitsRef, (snapshot) => {
+        const updates = {};
+        snapshot.forEach((child) => {
+          const d = child.val();
+          if (d.currentOwner === from && count < qty) {
+            updates[child.key + '/currentOwner'] = to;
+            push(ref(db, 'history'), { action: `Переведена единица ${d.id} от ${from} к ${to}`, timestamp: new Date().toISOString() });
+            count++;
+          }
+        });
+        update(unitsRef, updates);
+        showMessage(`Переведено ${count} единиц`);
+      }, { onlyOnce: true });
     });
   }
 </script>
