@@ -1,27 +1,37 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head><meta charset="UTF-8" /><title>Registry</title><script src="https://cdn.tailwindcss.com"></script></head>
+<head><meta charset="UTF-8" /><title>Реестр</title><script src="https://cdn.tailwindcss.com"></script></head>
 <body class="bg-white text-black font-sans">
 
 <header class="flex justify-between items-center p-6 border-b bg-white">
   <div class="text-lg font-bold">РЕЕСТР УГЛЕРОДНЫХ-ЕДИНИЦ</div>
   <nav class="space-x-6 hidden md:flex">
     <a href="index.html" class="hover:underline">Главная</a>
-    <a href="registry.html" class="hover:underline">Реестр</a>
+    <a href="registry.html" class="hover:underline font-bold text-green-600">Реестр</a>
     <a href="create.html" class="hover:underline">Регистрация</a>
     <a href="transfer.html" class="hover:underline">Перемещение</a>
     <a href="log.html" class="hover:underline">Журнал</a>
     <a href="history.html" class="hover:underline">История</a>
   </nav>
-  <button class="bg-gray-100 text-black px-4 py-2 rounded hover:bg-gray-200">Войти</button>
 </header>
 
-<main class="max-w-4xl mx-auto px-4 py-8">
 
-<h1 class="text-2xl font-bold mb-4">Зарегистрированные компании и их углеродные единицы</h1>
-<ul id="companyList" class="space-y-2"></ul>
-
+<main class="max-w-6xl mx-auto px-4 py-8">
+  <h1 class="text-2xl font-bold mb-6">Реестр компаний</h1>
+  <div class="overflow-x-auto">
+    <table class="min-w-full border text-left text-sm">
+      <thead class="bg-gray-100 border-b">
+        <tr>
+          <th class="p-2">Компания</th>
+          <th class="p-2">Счёт</th>
+          <th class="p-2">Действующих углеродных единиц</th>
+        </tr>
+      </thead>
+      <tbody id="registryTable"></tbody>
+    </table>
+  </div>
 </main>
+
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -40,35 +50,48 @@
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
 
-  const companiesRef = ref(db, 'companies');
-  const unitsRef = ref(db, 'units');
+  const registryTable = document.getElementById('registryTable');
 
-  const companyList = document.getElementById('companyList');
-  let unitsPerCompany = {};
+  let unitCount = {};
+  let companyNames = {};
 
-  onValue(unitsRef, (snapshot) => {
-    unitsPerCompany = {};
-    snapshot.forEach((child) => {
-      const unit = child.val();
-      const owner = unit.currentOwner;
-      unitsPerCompany[owner] = (unitsPerCompany[owner] || 0) + 1;
+  function updateTable() {
+    registryTable.innerHTML = '';
+    Object.keys(unitCount).forEach(id => {
+      const row = document.createElement('tr');
+      row.className = "border-b";
+      row.innerHTML = `
+        <td class="p-2">${companyNames[id] || ''}</td>
+        <td class="p-2">${id}</td>
+        <td class="p-2">${unitCount[id]}</td>
+      `;
+      registryTable.appendChild(row);
     });
-    renderCompanies();
+  }
+
+  const companiesRef = ref(db, 'companies');
+  onValue(companiesRef, (snapshot) => {
+    companyNames = {};
+    snapshot.forEach(company => {
+      companyNames[company.key] = company.val().name;
+    });
+    updateTable();
   });
 
-  function renderCompanies() {
-    onValue(companiesRef, (snapshot) => {
-      companyList.innerHTML = '';
-      snapshot.forEach((child) => {
-        const company = child.val();
-        const li = document.createElement('li');
-        const count = unitsPerCompany[company.id] || 0;
-        li.className = "border p-3 rounded bg-white shadow";
-        li.textContent = `${company.name} (${company.id}) — ${count} ед.`;
-        companyList.appendChild(li);
-      });
-    }, { onlyOnce: true });
-  }
+  const unitsRef = ref(db, 'units');
+  onValue(unitsRef, (snapshot) => {
+    unitCount = {};
+    snapshot.forEach(child => {
+      const unit = child.val();
+      if (!unit.cancelled) {
+        const owner = unit.currentOwner;
+        if (owner) {
+          unitCount[owner] = (unitCount[owner] || 0) + 1;
+        }
+      }
+    });
+    updateTable();
+  });
 </script>
 
 </body>
