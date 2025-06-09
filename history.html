@@ -1,27 +1,32 @@
 <!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <title>History</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
+<html lang="ru"><head><meta charset="UTF-8"><title>history.html</title><script src="https://cdn.tailwindcss.com"></script></head>
 <body class="max-w-3xl mx-auto px-4 py-6 bg-gray-50 min-h-screen">
 
-<nav class="bg-gray-800 p-4 mb-6 text-white flex space-x-4">
-  <a href="index.html" class="hover:underline">Компании</a>
-  <a href="issue.html" class="hover:underline">Выпуск</a>
-  <a href="transfer.html" class="hover:underline">Перемещение</a>
-  <a href="log.html" class="hover:underline">Журнал</a>
-  <a href="history.html" class="hover:underline">История</a>
+<nav class="bg-gray-800 p-4 text-white flex justify-between items-center mb-6">
+  <div class="space-x-4">
+    <a href="index.html" class="hover:underline">Компании</a>
+    <a href="issue.html" class="hover:underline">Выпуск</a>
+    <a href="transfer.html" class="hover:underline">Перемещение</a>
+    <a href="log.html" class="hover:underline">Журнал</a>
+    <a href="history.html" class="hover:underline">История</a>
+  </div>
+  <div>
+    <span id="userStatus" class="mr-4 text-sm italic"></span>
+    <button id="logoutBtn" class="bg-red-600 px-3 py-1 rounded text-sm">Выйти</button>
+  </div>
 </nav>
 
-
-<h1 class="text-2xl font-bold mb-4">История операций</h1>
-<ul id="historyList" class="space-y-1"></ul>
+<h1 class='text-2xl font-bold mb-4'>История операций</h1><p>Здесь будет список всех операций.</p>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import {
+    getAuth,
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    signOut,
+    onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCfCnM8w7DZKZN3dXZgDHUo9RSx1K2y6mo",
@@ -35,108 +40,42 @@
   };
 
   const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
+  const auth = getAuth(app);
 
   const path = window.location.pathname;
+  const navUser = document.getElementById('userStatus');
+  const logoutBtn = document.getElementById('logoutBtn');
 
-  if (path.includes("index.html") || path.endsWith("/")) {
-    document.getElementById('createCompanyBtn').addEventListener('click', () => {
-      const name = document.getElementById('companyName').value.trim();
-      const id = document.getElementById('companyID').value.trim();
-      if (!name || !id) return;
-      push(ref(db, 'companies'), { name, id, createdAt: new Date().toISOString() });
-      push(ref(db, 'history'), { action: `Создана компания ${name} (ID: ${id})`, timestamp: new Date().toISOString() });
-      document.getElementById('companyName').value = '';
-      document.getElementById('companyID').value = '';
-    });
-
-    const companiesRef = ref(db, 'companies');
-    onValue(companiesRef, (snapshot) => {
-      const list = document.getElementById('companyList');
-      list.innerHTML = '';
-      snapshot.forEach((child) => {
-        const data = child.val();
-        const li = document.createElement('li');
-        li.className = "border p-2 rounded bg-white shadow";
-        li.textContent = `${data.name} (${data.id})`;
-        list.appendChild(li);
-      });
-    });
-  }
-
-  if (path.includes("issue.html")) {
-    document.getElementById('issueUnitsBtn').addEventListener('click', () => {
-      const companyID = document.getElementById('targetCompany').value;
-      const quantity = parseInt(document.getElementById('quantity').value);
-      const type = document.getElementById('unitType').value;
-      const expiryYear = document.getElementById('expiryYear').value;
-      const dateStr = new Date().toISOString().split('T')[0];
-      for (let i = 0; i < quantity; i++) {
-        const id = `${type}-${dateStr.replaceAll('-', '')}-${Date.now() + i}`;
-        const unit = {
-          id,
-          issuedDate: dateStr,
-          firstOwner: companyID,
-          currentOwner: companyID,
-          expiryYear
-        };
-        push(ref(db, 'units'), unit);
-        push(ref(db, 'history'), { action: `Выпущена единица ${id} для компании ${companyID}`, timestamp: new Date().toISOString() });
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      if (navUser) navUser.textContent = "Вы вошли как: " + user.email;
+      if (logoutBtn) logoutBtn.onclick = () => signOut(auth).then(() => location.href = 'login.html');
+    } else {
+      if (!path.includes('login') && !path.includes('register')) {
+        location.href = 'login.html';
       }
-    });
+    }
+  });
+
+  if (path.includes("login")) {
+    document.getElementById("loginBtn").onclick = () => {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      signInWithEmailAndPassword(auth, email, password)
+        .then(() => location.href = "index.html")
+        .catch(err => alert("Ошибка: " + err.message));
+    };
   }
 
-  if (path.includes("transfer.html")) {
-    document.getElementById('transferBtn').addEventListener('click', () => {
-      const from = document.getElementById('from').value;
-      const to = document.getElementById('to').value;
-      const qty = parseInt(document.getElementById('qty').value);
-      const unitsRef = ref(db, 'units');
-      let count = 0;
-      onValue(unitsRef, (snapshot) => {
-        const updates = {};
-        snapshot.forEach((child) => {
-          const data = child.val();
-          if (data.currentOwner === from && count < qty) {
-            updates[child.key + '/currentOwner'] = to;
-            push(ref(db, 'history'), { action: `Переведена единица ${data.id} от ${from} к ${to}`, timestamp: new Date().toISOString() });
-            count++;
-          }
-        });
-        update(unitsRef, updates);
-      }, { onlyOnce: true });
-    });
-  }
-
-  if (path.includes("log.html")) {
-    const logRef = ref(db, 'units');
-    onValue(logRef, (snapshot) => {
-      const table = document.getElementById('logTable');
-      table.innerHTML = '';
-      let i = 1;
-      snapshot.forEach((child) => {
-        const u = child.val();
-        const row = `<tr class="border-b"><td class="p-2">${i++}</td><td class="p-2">${u.id}</td><td class="p-2">${u.issuedDate}</td><td class="p-2">${u.firstOwner}</td><td class="p-2">${u.currentOwner}</td><td class="p-2">${u.expiryYear || '-'}</td></tr>`;
-        table.innerHTML += row;
-      });
-    });
-  }
-
-  if (path.includes("history.html")) {
-    const historyRef = ref(db, 'history');
-    onValue(historyRef, (snapshot) => {
-      const list = document.getElementById('historyList');
-      list.innerHTML = '';
-      snapshot.forEach((child) => {
-        const entry = child.val();
-        const li = document.createElement('li');
-        li.className = "text-sm border-b p-1";
-        li.textContent = `${new Date(entry.timestamp).toLocaleString()} — ${entry.action}`;
-        list.appendChild(li);
-      });
-    });
+  if (path.includes("register")) {
+    document.getElementById("registerBtn").onclick = () => {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      createUserWithEmailAndPassword(auth, email, password)
+        .then(() => location.href = "index.html")
+        .catch(err => alert("Ошибка: " + err.message));
+    };
   }
 </script>
 
-</body>
-</html>
+</body></html>

@@ -1,22 +1,16 @@
 <!DOCTYPE html>
-<html lang="ru"><head><meta charset="UTF-8"><title>issue.html</title><script src="https://cdn.tailwindcss.com"></script></head>
+<html lang="ru"><head><meta charset="UTF-8"><title>login.html</title><script src="https://cdn.tailwindcss.com"></script></head>
 <body class="max-w-3xl mx-auto px-4 py-6 bg-gray-50 min-h-screen">
 
-<nav class="bg-gray-800 p-4 text-white flex justify-between items-center mb-6">
-  <div class="space-x-4">
-    <a href="index.html" class="hover:underline">Компании</a>
-    <a href="issue.html" class="hover:underline">Выпуск</a>
-    <a href="transfer.html" class="hover:underline">Перемещение</a>
-    <a href="log.html" class="hover:underline">Журнал</a>
-    <a href="history.html" class="hover:underline">История</a>
-  </div>
-  <div>
-    <span id="userStatus" class="mr-4 text-sm italic"></span>
-    <button id="logoutBtn" class="bg-red-600 px-3 py-1 rounded text-sm">Выйти</button>
-  </div>
-</nav>
 
-<h1 class='text-2xl font-bold mb-4'>Выпуск единиц</h1><p>Здесь будет интерфейс выпуска единиц.</p>
+<h1 class='text-2xl font-bold mb-4 text-center'>Вход</h1>
+<div class='space-y-4'>
+  <input id='email' class='border p-2 w-full' placeholder='Email'>
+  <input id='password' type='password' class='border p-2 w-full' placeholder='Пароль'>
+  <button id='loginBtn' class='bg-blue-600 text-white w-full py-2 rounded'>Войти</button>
+  <p class='text-sm text-center'>Нет аккаунта? <a class='text-blue-600' href='register.html'>Зарегистрируйтесь</a></p>
+</div>
+
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
