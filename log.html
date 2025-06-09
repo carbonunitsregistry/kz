@@ -1,35 +1,32 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <title>Log</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="max-w-3xl mx-auto px-4 py-6 bg-gray-50 min-h-screen">
+<head><meta charset="UTF-8" /><title>Log</title><script src="https://cdn.tailwindcss.com"></script></head>
+<body class="bg-white text-black font-sans">
 
-<nav class="bg-gray-800 p-4 mb-6 text-white flex space-x-4">
-  <a href="index.html" class="hover:underline">Компании</a>
-  <a href="issue.html" class="hover:underline">Выпуск</a>
-  <a href="transfer.html" class="hover:underline">Перемещение</a>
-  <a href="log.html" class="hover:underline">Журнал</a>
-  <a href="history.html" class="hover:underline">История</a>
-</nav>
+<header class="flex justify-between items-center p-6 border-b bg-white">
+  <div class="text-lg font-bold">РЕЕСТР УГЛЕРОДНЫХ-ЕДИНИЦ</div>
+  <nav class="space-x-6 hidden md:flex">
+    <a href="index.html" class="hover:underline">Главная</a>
+    <a href="registry.html" class="hover:underline">Реестр</a>
+    <a href="create.html" class="hover:underline">Регистрация</a>
+    <a href="transfer.html" class="hover:underline">Перемещение</a>
+    <a href="log.html" class="hover:underline">Журнал</a>
+    <a href="history.html" class="hover:underline">История</a>
+  </nav>
+  <button class="bg-gray-100 text-black px-4 py-2 rounded hover:bg-gray-200">Войти</button>
+</header>
 
+<main class="max-w-4xl mx-auto px-4 py-8">
 
-<h1 class="text-2xl font-bold mb-4">Журнал углеродных единиц</h1>
+<h1 class="text-2xl font-bold mb-4">Журнал</h1>
 <table class="table-auto w-full border">
-  <thead class="bg-gray-200">
-    <tr>
-      <th class="p-2">#</th>
-      <th class="p-2">ID</th>
-      <th class="p-2">Дата</th>
-      <th class="p-2">Первый владелец</th>
-      <th class="p-2">Текущий владелец</th>
-      <th class="p-2">Истечение</th>
-    </tr>
-  </thead>
+  <thead class="bg-gray-100"><tr>
+    <th class="p-2">#</th><th class="p-2">ID</th><th class="p-2">Дата</th><th class="p-2">Первый</th><th class="p-2">Текущий</th><th class="p-2">Истечение</th>
+  </tr></thead>
   <tbody id="logTable"></tbody>
 </table>
+
+</main>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -48,30 +45,73 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
-
   const path = window.location.pathname;
 
-  if (path.includes("index.html") || path.endsWith("/")) {
+  if (path.includes("create.html")) {
     document.getElementById('createCompanyBtn').addEventListener('click', () => {
       const name = document.getElementById('companyName').value.trim();
       const id = document.getElementById('companyID').value.trim();
       if (!name || !id) return;
-      push(ref(db, 'companies'), { name, id, createdAt: new Date().toISOString() });
+      push(ref(db, 'companies'), { name, id });
       push(ref(db, 'history'), { action: `Создана компания ${name} (ID: ${id})`, timestamp: new Date().toISOString() });
-      document.getElementById('companyName').value = '';
-      document.getElementById('companyID').value = '';
     });
+    const out = document.getElementById('companyList');
+    onValue(ref(db, 'companies'), snap => {
+      out.innerHTML = '';
+      snap.forEach(c => {
+        const d = c.val();
+        const el = document.createElement('li');
+        el.textContent = `${d.name} (${d.id})`;
+        el.className = "border p-2 rounded";
+        out.appendChild(el);
+      });
+    });
+  }
 
-    const companiesRef = ref(db, 'companies');
-    onValue(companiesRef, (snapshot) => {
-      const list = document.getElementById('companyList');
-      list.innerHTML = '';
-      snapshot.forEach((child) => {
-        const data = child.val();
-        const li = document.createElement('li');
-        li.className = "border p-2 rounded bg-white shadow";
-        li.textContent = `${data.name} (${data.id})`;
-        list.appendChild(li);
+  if (path.includes("registry.html")) {
+    const out = document.getElementById('companyList');
+    onValue(ref(db, 'companies'), snap => {
+      out.innerHTML = '';
+      snap.forEach(c => {
+        const d = c.val();
+        const el = document.createElement('li');
+        el.textContent = `${d.name} (${d.id})`;
+        el.className = "border p-2 rounded";
+        out.appendChild(el);
+      });
+    });
+  }
+
+  if (path.includes("transfer.html")) {
+    document.getElementById('transferBtn').addEventListener('click', () => {
+      const from = document.getElementById('from').value;
+      const to = document.getElementById('to').value;
+      const qty = parseInt(document.getElementById('qty').value);
+      const unitsRef = ref(db, 'units');
+      let count = 0;
+      onValue(unitsRef, snap => {
+        const updates = {};
+        snap.forEach(child => {
+          const d = child.val();
+          if (d.currentOwner === from && count < qty) {
+            updates[child.key + '/currentOwner'] = to;
+            push(ref(db, 'history'), { action: `Переведена единица ${d.id} от ${from} к ${to}`, timestamp: new Date().toISOString() });
+            count++;
+          }
+        });
+        update(unitsRef, updates);
+      }, { onlyOnce: true });
+    });
+  }
+
+  if (path.includes("log.html")) {
+    const out = document.getElementById('logTable');
+    onValue(ref(db, 'units'), snap => {
+      out.innerHTML = '';
+      let i = 1;
+      snap.forEach(child => {
+        const u = child.val();
+        out.innerHTML += `<tr class="border-b"><td class="p-2">${i++}</td><td class="p-2">${u.id}</td><td class="p-2">${u.issuedDate}</td><td class="p-2">${u.firstOwner}</td><td class="p-2">${u.currentOwner}</td><td class="p-2">${u.expiryYear || '-'}</td></tr>`;
       });
     });
   }
@@ -98,52 +138,15 @@
     });
   }
 
-  if (path.includes("transfer.html")) {
-    document.getElementById('transferBtn').addEventListener('click', () => {
-      const from = document.getElementById('from').value;
-      const to = document.getElementById('to').value;
-      const qty = parseInt(document.getElementById('qty').value);
-      const unitsRef = ref(db, 'units');
-      let count = 0;
-      onValue(unitsRef, (snapshot) => {
-        const updates = {};
-        snapshot.forEach((child) => {
-          const data = child.val();
-          if (data.currentOwner === from && count < qty) {
-            updates[child.key + '/currentOwner'] = to;
-            push(ref(db, 'history'), { action: `Переведена единица ${data.id} от ${from} к ${to}`, timestamp: new Date().toISOString() });
-            count++;
-          }
-        });
-        update(unitsRef, updates);
-      }, { onlyOnce: true });
-    });
-  }
-
-  if (path.includes("log.html")) {
-    const logRef = ref(db, 'units');
-    onValue(logRef, (snapshot) => {
-      const table = document.getElementById('logTable');
-      table.innerHTML = '';
-      let i = 1;
-      snapshot.forEach((child) => {
-        const u = child.val();
-        const row = `<tr class="border-b"><td class="p-2">${i++}</td><td class="p-2">${u.id}</td><td class="p-2">${u.issuedDate}</td><td class="p-2">${u.firstOwner}</td><td class="p-2">${u.currentOwner}</td><td class="p-2">${u.expiryYear || '-'}</td></tr>`;
-        table.innerHTML += row;
-      });
-    });
-  }
-
   if (path.includes("history.html")) {
-    const historyRef = ref(db, 'history');
-    onValue(historyRef, (snapshot) => {
-      const list = document.getElementById('historyList');
+    const list = document.getElementById('historyList');
+    onValue(ref(db, 'history'), snap => {
       list.innerHTML = '';
-      snapshot.forEach((child) => {
-        const entry = child.val();
+      snap.forEach(c => {
+        const d = c.val();
         const li = document.createElement('li');
-        li.className = "text-sm border-b p-1";
-        li.textContent = `${new Date(entry.timestamp).toLocaleString()} — ${entry.action}`;
+        li.className = "border-b p-1 text-sm";
+        li.textContent = `${new Date(d.timestamp).toLocaleString()} — ${d.action}`;
         list.appendChild(li);
       });
     });
