@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
   <meta charset="UTF-8">
-  <title>Issue</title>
-  <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/water.css@2/out/water.css'>
+  <title>Реестр углеродных единиц</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
 </head>
+
 <body>
+
 <nav>
   <a href="index.html">Компании</a>
   <a href="issue.html">Выпуск</a>
@@ -13,16 +16,8 @@
   <a href="log.html">Журнал</a>
   <a href="history.html">История</a>
 </nav>
-<h1>Выпуск углеродных единиц</h1>
-<input id='targetCompany' placeholder='ID компании'>
-<input id='quantity' type='number' placeholder='Количество'>
-<select id='unitType'>
-  <option value='KZ'>Квота</option>
-  <option value='OF'>Офсет</option>
-  <option value='INT'>Международная</option>
-</select>
-<input id='expiryYear' placeholder='Год истечения (опционально)'>
-<button id='issueUnitsBtn'>Выпустить</button>
+
+<h1>Выпуск единиц</h1><input id='targetCompany' placeholder='ID компании'><input id='quantity' type='number' placeholder='Количество'><select id='unitType'><option value='KZ'>Квота</option><option value='OF'>Офсет</option><option value='INT'>Международная</option></select><input id='expiryYear' placeholder='Год истечения (опционально)'><button id='issueUnitsBtn'>Выпустить</button>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -50,10 +45,8 @@
       const name = document.getElementById('companyName').value.trim();
       const id = document.getElementById('companyID').value.trim();
       if (!name || !id) return;
-
       push(ref(db, 'companies'), { name, id, createdAt: new Date().toISOString() });
       push(ref(db, 'history'), { action: `Создана компания ${name} (ID: ${id})`, timestamp: new Date().toISOString() });
-
       document.getElementById('companyName').value = '';
       document.getElementById('companyID').value = '';
     });

@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
   <meta charset="UTF-8">
-  <title>History</title>
-  <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/water.css@2/out/water.css'>
+  <title>Реестр углеродных единиц</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
 </head>
+
 <body>
+
 <nav>
   <a href="index.html">Компании</a>
   <a href="issue.html">Выпуск</a>
@@ -13,8 +16,8 @@
   <a href="log.html">Журнал</a>
   <a href="history.html">История</a>
 </nav>
-<h1>История операций</h1>
-<ul id='historyList'></ul>
+
+<h1>История</h1><ul id='historyList'></ul>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -42,10 +45,8 @@
       const name = document.getElementById('companyName').value.trim();
       const id = document.getElementById('companyID').value.trim();
       if (!name || !id) return;
-
       push(ref(db, 'companies'), { name, id, createdAt: new Date().toISOString() });
       push(ref(db, 'history'), { action: `Создана компания ${name} (ID: ${id})`, timestamp: new Date().toISOString() });
-
       document.getElementById('companyName').value = '';
       document.getElementById('companyID').value = '';
     });
