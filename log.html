@@ -18,20 +18,16 @@
 <main class="max-w-6xl mx-auto px-4 py-8">
 
 <h1 class="text-2xl font-bold mb-4">Журнал всех единиц</h1>
-<div class="flex gap-4 mb-4">
-  <input id="filterInput" type="text" placeholder="Поиск..." class="px-3 py-2 border rounded w-full" />
-  <button id="sortToggle" class="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300">Сначала новые</button>
-</div>
 <div class="overflow-x-auto">
   <table class="min-w-full border text-left text-sm">
     <thead class="bg-gray-100 border-b">
       <tr>
         <th class="p-2">#</th>
-        <th class="p-2">ID</th>
-        <th class="p-2">Дата</th>
-        <th class="p-2">Первый владелец</th>
-        <th class="p-2">Текущий владелец</th>
-        <th class="p-2">Истечение</th>
+        <th class="p-2">ID<br><input id="filterID" class="border rounded px-1 py-0.5 w-full" /></th>
+        <th class="p-2">Дата<br><input id="filterDate" class="border rounded px-1 py-0.5 w-full" /></th>
+        <th class="p-2">Первый владелец<br><input id="filterFirstOwner" class="border rounded px-1 py-0.5 w-full" /></th>
+        <th class="p-2">Текущий владелец<br><input id="filterCurrentOwner" class="border rounded px-1 py-0.5 w-full" /></th>
+        <th class="p-2">Истечение<br><input id="filterExpiry" class="border rounded px-1 py-0.5 w-full" /></th>
       </tr>
     </thead>
     <tbody id="logList"></tbody>
@@ -60,14 +56,19 @@
   const logRef = ref(db, 'units');
   const logList = document.getElementById('logList');
   const pagination = document.getElementById('pagination');
-  const filterInput = document.getElementById('filterInput');
-  const sortBtn = document.getElementById('sortToggle');
+
+  const filters = {
+    id: document.getElementById('filterID'),
+    date: document.getElementById('filterDate'),
+    firstOwner: document.getElementById('filterFirstOwner'),
+    currentOwner: document.getElementById('filterCurrentOwner'),
+    expiry: document.getElementById('filterExpiry')
+  };
 
   let allEntries = [];
   let filteredEntries = [];
   let currentPage = 1;
   const perPage = 20;
-  let sortAsc = false;
 
   function renderPage(page) {
     logList.innerHTML = '';
@@ -77,12 +78,12 @@
       const row = document.createElement('tr');
       row.className = "border-b";
       row.innerHTML = `
-        <td class="p-2 text-sm">${start + index + 1}</td>
-        <td class="p-2 text-sm">${entry.id}</td>
-        <td class="p-2 text-sm">${entry.issueDate || ''}</td>
-        <td class="p-2 text-sm">${entry.firstOwner || ''}</td>
-        <td class="p-2 text-sm">${entry.currentOwner || ''}</td>
-        <td class="p-2 text-sm">${entry.expiryYear || '–'}</td>
+        <td class="p-2">${start + index + 1}</td>
+        <td class="p-2">${entry.id}</td>
+        <td class="p-2">${entry.issueDate || ''}</td>
+        <td class="p-2">${entry.firstOwner || ''}</td>
+        <td class="p-2">${entry.currentOwner || ''}</td>
+        <td class="p-2">${entry.expiryYear || '–'}</td>
       `;
       logList.appendChild(row);
     });
@@ -104,41 +105,34 @@
     }
   }
 
-  function applyFilterAndSort() {
-    const keyword = filterInput.value.toLowerCase();
-    filteredEntries = allEntries.filter(e =>
-      e.id?.toLowerCase().includes(keyword) ||
-      e.firstOwner?.toLowerCase().includes(keyword) ||
-      e.currentOwner?.toLowerCase().includes(keyword) ||
-      e.type?.toLowerCase().includes(keyword)
-    );
+  function applyFilters() {
+    const idVal = filters.id.value.toLowerCase();
+    const dateVal = filters.date.value.toLowerCase();
+    const firstVal = filters.firstOwner.value.toLowerCase();
+    const currVal = filters.currentOwner.value.toLowerCase();
+    const expVal = filters.expiry.value.toLowerCase();
 
-    filteredEntries.sort((a, b) =>
-      sortAsc
-        ? new Date(a.issueDate) - new Date(b.issueDate)
-        : new Date(b.issueDate) - new Date(a.issueDate)
+    filteredEntries = allEntries.filter(e =>
+      (e.id || '').toLowerCase().includes(idVal) &&
+      (e.issueDate || '').toLowerCase().includes(dateVal) &&
+      (e.firstOwner || '').toLowerCase().includes(firstVal) &&
+      (e.currentOwner || '').toLowerCase().includes(currVal) &&
+      (e.expiryYear || '').toString().toLowerCase().includes(expVal)
     );
 
     renderPage(1);
   }
 
-  sortBtn.onclick = () => {
-    sortAsc = !sortAsc;
-    sortBtn.textContent = sortAsc ? "Сначала старые" : "Сначала новые";
-    applyFilterAndSort();
-  };
-
-  filterInput.oninput = () => {
-    applyFilterAndSort();
-  };
+  Object.values(filters).forEach(input => {
+    input.addEventListener('input', applyFilters);
+  });
 
   onValue(logRef, (snapshot) => {
     allEntries = [];
-    snapshot.forEach((child) => {
-      const val = child.val();
-      allEntries.push(val);
+    snapshot.forEach(child => {
+      allEntries.push(child.val());
     });
-    applyFilterAndSort();
+    applyFilters();
   });
 </script>
 
