@@ -1,4 +1,10 @@
 
+function logAction(action) {
+  const history = JSON.parse(localStorage.getItem('operationHistory') || '[]');
+  history.push({ timestamp: new Date().toLocaleString(), action });
+  localStorage.setItem('operationHistory', JSON.stringify(history));
+}
+
 function issueUnits() {
   const companyID = document.getElementById('targetCompany').value;
   const quantity = parseInt(document.getElementById('quantity').value);
@@ -7,7 +13,7 @@ function issueUnits() {
   if (!companyID || !quantity) return;
 
   let units = JSON.parse(localStorage.getItem('units') || '[]');
-  const dateStr = '2025-06-09';
+  const dateStr = new Date().toISOString().split('T')[0];
 
   for (let i = 0; i < quantity; i++) {
     const id = `${type}-${dateStr.replaceAll('-', '')}-${units.length + 1}`;
@@ -18,6 +24,7 @@ function issueUnits() {
       currentOwner: companyID,
       expiryYear
     });
+    logAction(`Выпущена единица ${id} для компании ${companyID}`);
   }
 
   localStorage.setItem('units', JSON.stringify(units));
@@ -30,9 +37,7 @@ function renderUnits() {
   list.innerHTML = '';
   units.forEach(u => {
     const li = document.createElement('li');
-    li.textContent = `${u.id} → ${
-      u.currentOwner
-    } (до: ${u.expiryYear || '-'})`;
+    li.textContent = `${u.id} → ${u.currentOwner} (до: ${u.expiryYear || '-'})`;
     list.appendChild(li);
   });
 }

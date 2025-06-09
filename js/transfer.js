@@ -1,4 +1,10 @@
 
+function logAction(action) {
+  const history = JSON.parse(localStorage.getItem('operationHistory') || '[]');
+  history.push({ timestamp: new Date().toLocaleString(), action });
+  localStorage.setItem('operationHistory', JSON.stringify(history));
+}
+
 function transfer() {
   const from = document.getElementById('from').value;
   const to = document.getElementById('to').value;
@@ -10,6 +16,7 @@ function transfer() {
     if (u.currentOwner === from && count < qty) {
       u.currentOwner = to;
       count++;
+      logAction(`Перевод единицы ${u.id} от ${from} к ${to}`);
     }
   }
 
