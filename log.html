@@ -15,15 +15,29 @@
   </nav>
 </header>
 
-<main class="max-w-5xl mx-auto px-4 py-8">
+<main class="max-w-6xl mx-auto px-4 py-8">
 
 <h1 class="text-2xl font-bold mb-4">Журнал всех единиц</h1>
 <div class="flex gap-4 mb-4">
   <input id="filterInput" type="text" placeholder="Поиск..." class="px-3 py-2 border rounded w-full" />
   <button id="sortToggle" class="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300">Сначала новые</button>
 </div>
-<ul id="logList" class="space-y-1 mb-6 text-sm"></ul>
-<div id="pagination" class="flex gap-2 flex-wrap"></div>
+<div class="overflow-x-auto">
+  <table class="min-w-full border text-left text-sm">
+    <thead class="bg-gray-100 border-b">
+      <tr>
+        <th class="p-2">#</th>
+        <th class="p-2">ID</th>
+        <th class="p-2">Дата</th>
+        <th class="p-2">Первый владелец</th>
+        <th class="p-2">Текущий владелец</th>
+        <th class="p-2">Истечение</th>
+      </tr>
+    </thead>
+    <tbody id="logList"></tbody>
+  </table>
+</div>
+<div id="pagination" class="flex gap-2 flex-wrap mt-4"></div>
 
 </main>
 
@@ -59,11 +73,18 @@
     logList.innerHTML = '';
     const start = (page - 1) * perPage;
     const pageEntries = filteredEntries.slice(start, start + perPage);
-    pageEntries.forEach(entry => {
-      const li = document.createElement('li');
-      li.className = "border-b p-2 text-sm";
-      li.textContent = `${entry.id} — ${entry.type} — ${entry.issueDate || ''} — ${entry.firstOwner || ''} — ${entry.currentOwner || ''} — ${entry.expiryYear || '–'}`;
-      logList.appendChild(li);
+    pageEntries.forEach((entry, index) => {
+      const row = document.createElement('tr');
+      row.className = "border-b";
+      row.innerHTML = `
+        <td class="p-2 text-sm">${start + index + 1}</td>
+        <td class="p-2 text-sm">${entry.id}</td>
+        <td class="p-2 text-sm">${entry.issueDate || ''}</td>
+        <td class="p-2 text-sm">${entry.firstOwner || ''}</td>
+        <td class="p-2 text-sm">${entry.currentOwner || ''}</td>
+        <td class="p-2 text-sm">${entry.expiryYear || '–'}</td>
+      `;
+      logList.appendChild(row);
     });
     renderPaginationControls();
   }
