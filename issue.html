@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head><meta charset="UTF-8" /><title>Issue</title><script src="https://cdn.tailwindcss.com"></script></head>
+<head><meta charset="UTF-8" /><title>Issue</title><script src="https://cdn.tailwindcss.com">
+function generateCarbonUnitID(type, issueYear, expiryYear) {
+  let typeCode = "UNK";
+  if (type === "единица квоты") typeCode = "QUA";
+  else if (type === "офсетная единица") typeCode = "OFF";
+  else if (type === "международные углеродные единицы") typeCode = "INT";
+
+  const expiry = expiryYear ? expiryYear.toString().padStart(4, '0') : "0000";
+  return `${typeCode}-${issueYear}-${expiry}-${Date.now()}`;
+}
+
+</script></head>
 <body class="bg-white text-black font-sans">
 
 <header class="flex justify-center items-center p-6 border-b bg-white">
@@ -103,6 +114,17 @@
       }, { onlyOnce: true });
     });
   }
+
+function generateCarbonUnitID(type, issueYear, expiryYear) {
+  let typeCode = "UNK";
+  if (type === "единица квоты") typeCode = "QUA";
+  else if (type === "офсетная единица") typeCode = "OFF";
+  else if (type === "международные углеродные единицы") typeCode = "INT";
+
+  const expiry = expiryYear ? expiryYear.toString().padStart(4, '0') : "0000";
+  return `${typeCode}-${issueYear}-${expiry}-${Date.now()}`;
+}
+
 </script>
 
 </body>
