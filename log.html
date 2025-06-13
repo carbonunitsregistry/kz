@@ -1,42 +1,46 @@
 <!DOCTYPE html>
+
 <html lang="ru">
-<head><meta charset="UTF-8" /><title>Журнал</title><script src="https://cdn.tailwindcss.com"></script></head>
+<head><meta charset="utf-8"/><title>Журнал</title><script src="https://cdn.tailwindcss.com"></script></head>
 <body class="bg-white text-black font-sans">
-
 <header class="flex justify-center items-center p-6 border-b bg-white">
-  <nav class="space-x-8 text-lg font-medium">
-    <a href="index.html" class="hover:underline">Главная</a>
-    <a href="registry.html"  class="hover:underline ">Реестр</a>
-    <a href="create.html" class="hover:underline">Регистрация</a>
-    <a href="transfer.html" class="hover:underline">Перемещение</a>
-    <a href="log.html"  class="hover:underline text-green-600 font-bold">Журнал</a>
-    <a href="history.html" class="hover:underline">История</a>
-  </nav>
+<nav class="space-x-8 text-lg font-medium">
+<a class="hover:underline" href="index.html">Главная</a>
+<a class="hover:underline" href="registry.html">Реестр</a>
+<a class="hover:underline" href="create.html">Регистрация</a>
+<a class="hover:underline" href="transfer.html">Перемещение</a>
+<a class="hover:underline text-green-600 font-bold" href="log.html">Журнал</a>
+<a class="hover:underline" href="history.html">История</a>
+</nav>
 </header>
-
 <main class="max-w-6xl mx-auto px-4 py-8">
-
 <h1 class="text-2xl font-bold mb-4">Журнал всех единиц</h1>
 <div class="overflow-x-auto">
-  <table class="min-w-full border text-left text-sm">
-    <thead class="bg-gray-100 border-b">
-      <tr>
-        <th class="p-2">#</th>
-        <th class="p-2">ID<br><input id="filterID" class="border rounded px-1 py-0.5 w-full" /></th>
-        <th class="p-2">Дата<br><input id="filterDate" class="border rounded px-1 py-0.5 w-full" /></th>
-        <th class="p-2">Первый владелец<br><input id="filterFirstOwner" class="border rounded px-1 py-0.5 w-full" /></th>
-        <th class="p-2">Текущий владелец<br><input id="filterCurrentOwner" class="border rounded px-1 py-0.5 w-full" /></th>
-        <th class="p-2">Истечение<br><input id="filterExpiry" class="border rounded px-1 py-0.5 w-full" /></th>
-        <th class="p-2">Действия</th>
-      </tr>
-    </thead>
-    <tbody id="logList"></tbody>
-  </table>
+<div class="flex justify-start gap-4 mb-4">
+<button class="bg-gray-100 hover:bg-gray-200 text-gray-900 text-sm font-normal px-6 py-2 rounded border border-gray-300" id="cancelSelected">
+    Аннулировать выбранные
+  </button>
+<button class="bg-gray-100 hover:bg-gray-200 text-gray-900 text-sm font-normal px-6 py-2 rounded border border-gray-300" id="exportExcel">
+    Экспорт в Excel
+  </button>
 </div>
-<div id="pagination" class="flex gap-2 flex-wrap mt-4"></div>
-
+<table class="min-w-full border text-left text-sm">
+<thead class="bg-gray-100 border-b">
+<tr>
+<th class="p-2"></th><th class="p-2">#</th>
+<th class="p-2">ID<br/><input class="border rounded px-1 py-0.5 w-full" id="filterID"/></th>
+<th class="p-2">Дата<br/><input class="border rounded px-1 py-0.5 w-full" id="filterDate"/></th>
+<th class="p-2">Первый владелец<br/><input class="border rounded px-1 py-0.5 w-full" id="filterFirstOwner"/></th>
+<th class="p-2">Текущий владелец<br/><input class="border rounded px-1 py-0.5 w-full" id="filterCurrentOwner"/></th>
+<th class="p-2">Истечение<br/><input class="border rounded px-1 py-0.5 w-full" id="filterExpiry"/></th>
+<th class="p-2">Действия</th>
+</tr>
+</thead>
+<tbody id="logList"></tbody>
+</table>
+</div>
+<div class="flex justify-center gap-2 flex-wrap mt-6" id="pagination"></div>
 </main>
-
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -81,6 +85,7 @@
       const row = document.createElement('tr');
       row.className = "border-b";
       row.innerHTML = `
+        <td class="p-2">${entry.cancelled ? "" : `<input type="checkbox" class="unitCheckbox" data-key="${key}">`}</td>
         <td class="p-2">${start + index + 1}</td>
         <td class="p-2">${entry.id}</td>
         <td class="p-2">${entry.issueDate || ''}</td>
@@ -151,7 +156,25 @@
     });
     applyFilters();
   });
-</script>
 
+
+document.getElementById('cancelSelected').addEventListener('click', async () => {
+  const checkboxes = document.querySelectorAll('.unitCheckbox:checked');
+  if (checkboxes.length === 0) {
+    alert("Выберите хотя бы одну единицу для аннулирования.");
+    return;
+  }
+  if (!confirm("Вы уверены, что хотите аннулировать выбранные единицы?")) return;
+
+  const updates = {};
+  checkboxes.forEach(cb => {
+    updates['units/' + cb.dataset.key + '/cancelled'] = true;
+  });
+
+  const dbRef = ref(db);
+  await update(dbRef, updates);
+  alert("Выбранные углеродные единицы аннулированы.");
+});
+</script>
 </body>
 </html>
