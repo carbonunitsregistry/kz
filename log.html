@@ -84,8 +84,7 @@
       const key = entry._key;
       const row = document.createElement('tr');
       row.className = "border-b";
-      row.innerHTML = `
-        <td class="p-2">${entry.cancelled ? "" : `<input type="checkbox" class="unitCheckbox" data-key="${key}">`}</td>
+      row.innerHTML = `\n<td class="p-2">${entry.cancelled ? "" : `<input type="checkbox" class="unitCheckbox" data-key="${key}">`}</td>
         <td class="p-2">${start + index + 1}</td>
         <td class="p-2">${entry.id}</td>
         <td class="p-2">${entry.issueDate || ''}</td>
@@ -174,6 +173,29 @@ document.getElementById('cancelSelected').addEventListener('click', async () => 
   const dbRef = ref(db);
   await update(dbRef, updates);
   alert("Выбранные углеродные единицы аннулированы.");
+});
+
+
+document.getElementById('exportExcel').addEventListener('click', () => {
+  if (!window.fullData) {
+    alert("Данные ещё не загружены.");
+    return;
+  }
+
+  const headers = ['ID', 'Дата', 'Первый владелец', 'Текущий владелец', 'Истечение', 'Аннулировано'];
+  const rows = Object.entries(window.fullData).map(([_, entry]) => [
+    entry.id || '',
+    entry.issueDate || '',
+    entry.firstOwner || '',
+    entry.currentOwner || '',
+    entry.expiryYear || '',
+    entry.cancelled ? 'Да' : 'Нет'
+  ]);
+
+  const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Журнал");
+  XLSX.writeFile(workbook, "Журнал_весь.xlsx");
 });
 </script>
 </body>
