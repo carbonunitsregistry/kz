@@ -1,23 +1,15 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head><meta charset="UTF-8" /><title>Issue</title><script src="https://cdn.tailwindcss.com">
-function generateCarbonUnitID(type, issueYear, expiryYear) {
-  let typeCode = "UNK";
-  if (type === "единица квоты") typeCode = "QUA";
-  else if (type === "офсетная единица") typeCode = "OFF";
-  else if (type === "международные углеродные единицы") typeCode = "INT";
-
-  const expiry = expiryYear ? expiryYear.toString().padStart(4, '0') : "0000";
-  return `${typeCode}-${issueYear}-${expiry}-${Date.now()}`;
-}
-
-</script></head>
+<head>
+  <meta charset="UTF-8" />
+  <title>Issue</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
 <body class="bg-white text-black font-sans">
-
 <header class="flex justify-center items-center p-6 border-b bg-white">
   <nav class="space-x-8 text-lg font-medium">
     <a href="index.html" class="hover:underline">Главная</a>
-    <a href="registry.html"  class="hover:underline ">Реестр</a>
+    <a href="registry.html" class="hover:underline">Реестр</a>
     <a href="create.html" class="hover:underline">Регистрация</a>
     <a href="transfer.html" class="hover:underline">Перемещение</a>
     <a href="log.html" class="hover:underline">Журнал</a>
@@ -26,24 +18,20 @@ function generateCarbonUnitID(type, issueYear, expiryYear) {
 </header>
 
 <main class="max-w-4xl mx-auto px-4 py-8">
-
-<h1 class="text-2xl font-bold mb-4">Выпуск единиц</h1>
-<div class="space-y-2">
-  <input id="targetCompany" class="border p-2 rounded w-full" placeholder="ID компании">
-  <input id="quantity" type="number" class="border p-2 rounded w-full" placeholder="Количество">
-  <select id="unitType" class="border p-2 rounded w-full">
-    <option value="KZ">Квота</option>
-    <option value="OF">Офсет</option>
-    <option value="INT">Международная</option>
-  </select>
-  <input id="expiryYear" class="border p-2 rounded w-full" placeholder="Год истечения (необязательно)">
-  <button id="issueUnitsBtn" class="bg-blue-600 text-white px-4 py-2 rounded">Выпустить</button>
-</div>
-<div id="statusMessage" class="hidden mt-4 text-green-600 font-semibold"></div>
-
+  <h1 class="text-2xl font-bold mb-4">Выпуск единиц</h1>
+  <div class="space-y-2">
+    <input id="targetCompany" class="border p-2 rounded w-full" placeholder="ID компании">
+    <input id="quantity" type="number" class="border p-2 rounded w-full" placeholder="Количество">
+    <select id="unitType" class="border p-2 rounded w-full">
+      <option value="KZ">Квота</option>
+      <option value="OF">Офсет</option>
+      <option value="INT">Международная</option>
+    </select>
+    <input id="expiryYear" class="border p-2 rounded w-full" placeholder="Год истечения (необязательно)">
+    <button id="issueUnitsBtn" class="bg-blue-600 text-white px-4 py-2 rounded">Выпустить</button>
+  </div>
+  <div id="statusMessage" class="hidden mt-4 text-green-600 font-semibold"></div>
 </main>
-
-
 
 
 <script type="module">
@@ -105,7 +93,7 @@ function generateCarbonUnitID(type, issueYear, expiryYear) {
       const id = generateCarbonUnitID(typeFullName, issueYear, expiryYear);
       const unit = {
         id,
-        issuedDate: dateStr,
+        issueDate: dateStr,
         firstOwner: companyID,
         currentOwner: companyID,
         expiryYear
