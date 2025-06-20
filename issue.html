@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head><meta charset="UTF-8" /><title>Issue</title><script src="https://cdn.tailwindcss.com"></script></head>
+<head><meta charset="UTF-8" /><title>Issue</title><script src="https://cdn.tailwindcss.com">
+function generateCarbonUnitID(type, issueYear, expiryYear) {
+  let typeCode = "UNK";
+  if (type === "единица квоты") typeCode = "QUA";
+  else if (type === "офсетная единица") typeCode = "OFF";
+  else if (type === "международные углеродные единицы") typeCode = "INT";
+
+  const expiry = expiryYear ? expiryYear.toString().padStart(4, '0') : "0000";
+  return `${typeCode}-${issueYear}-${expiry}-${Date.now()}`;
+}
+
+</script></head>
 <body class="bg-white text-black font-sans">
 
 <header class="flex justify-center items-center p-6 border-b bg-white">
@@ -33,6 +44,8 @@
 </main>
 
 
+
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -49,12 +62,12 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
-  const path = window.location.pathname;
 
-  const showMessage = (msg) => {
+  const showMessage = (msg, isError = false) => {
     const el = document.getElementById("statusMessage");
     if (!el) return;
     el.textContent = msg;
+    el.className = `mt-4 font-semibold ${isError ? 'text-red-600' : 'text-green-600'}`;
     el.classList.remove("hidden");
     setTimeout(() => el.classList.add("hidden"), 5000);
   };
@@ -64,47 +77,49 @@
     if (type === "единица квоты") typeCode = "QUA";
     else if (type === "офсетная единица") typeCode = "OFF";
     else if (type === "международные углеродные единицы") typeCode = "INT";
-
     const expiry = expiryYear ? expiryYear.toString().padStart(4, '0') : "0000";
     return `${typeCode}-${issueYear}-${expiry}-${Date.now()}`;
   }
 
-  if (path.includes("issue.html")) {
-    document.getElementById('issueUnitsBtn').addEventListener('click', () => {
-      const companyID = document.getElementById('targetCompany').value;
-      const quantity = parseInt(document.getElementById('quantity').value);
-      const typeSelect = document.getElementById('unitType');
-      const expiryYear = document.getElementById('expiryYear').value;
-      const dateStr = new Date().toISOString().split('T')[0];
-      const issueYear = new Date().getFullYear();
+  document.getElementById('issueUnitsBtn').addEventListener('click', () => {
+    const companyID = document.getElementById('targetCompany').value.trim();
+    const quantity = parseInt(document.getElementById('quantity').value.trim());
+    const typeValue = document.getElementById('unitType').value;
+    const expiryYear = document.getElementById('expiryYear').value.trim();
+    const dateStr = new Date().toISOString().split('T')[0];
+    const issueYear = new Date().getFullYear();
 
-      let typeFullName = "неизвестно";
-      switch (typeSelect.value) {
-        case "KZ": typeFullName = "единица квоты"; break;
-        case "OF": typeFullName = "офсетная единица"; break;
-        case "INT": typeFullName = "международные углеродные единицы"; break;
-      }
+    if (!companyID || isNaN(quantity) || quantity <= 0) {
+      showMessage("Укажите ID компании и корректное количество", true);
+      return;
+    }
 
-      for (let i = 0; i < quantity; i++) {
-        const id = generateCarbonUnitID(typeFullName, issueYear, expiryYear);
-        const unit = {
-          id,
-          issuedDate: dateStr,
-          firstOwner: companyID,
-          currentOwner: companyID,
-          expiryYear
-        };
-        push(ref(db, 'units'), unit);
-        push(ref(db, 'history'), {
-          action: `Выпущена единица ${id} для компании ${companyID}`,
-          timestamp: new Date().toISOString()
-        });
-      }
-      showMessage(`Выпущено ${quantity} единиц`);
-    });
-  }
+    let typeFullName = "неизвестно";
+    switch (typeValue) {
+      case "KZ": typeFullName = "единица квоты"; break;
+      case "OF": typeFullName = "офсетная единица"; break;
+      case "INT": typeFullName = "международные углеродные единицы"; break;
+    }
+
+    for (let i = 0; i < quantity; i++) {
+      const id = generateCarbonUnitID(typeFullName, issueYear, expiryYear);
+      const unit = {
+        id,
+        issuedDate: dateStr,
+        firstOwner: companyID,
+        currentOwner: companyID,
+        expiryYear
+      };
+      push(ref(db, 'units'), unit);
+      push(ref(db, 'history'), {
+        action: `Выпущена единица ${id} для компании ${companyID}`,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    showMessage(`Выпущено ${quantity} единиц`);
+  });
 </script>
-
 
 </body>
 </html>
