@@ -69,25 +69,45 @@ function generateCarbonUnitID(type, issueYear, expiryYear) {
     setTimeout(() => el.classList.add("hidden"), 5000);
   };
 
-  if (path.includes("issue.html")) {
-    document.getElementById('issueUnitsBtn').addEventListener('click', () => {
-      const companyID = document.getElementById('targetCompany').value;
-      const quantity = parseInt(document.getElementById('quantity').value);
-      const type = document.getElementById('unitType').value;
-      const expiryYear = document.getElementById('expiryYear').value;
-      const dateStr = new Date().toISOString().split('T')[0];
-      for (let i = 0; i < quantity; i++) {
-        const id = `${type}-${dateStr.replaceAll('-', '')}-${Date.now() + i}`;
-        const unit = {
-          id,
-          issuedDate: dateStr,
-          firstOwner: companyID,
-          currentOwner: companyID,
-          expiryYear
-        };
-        push(ref(db, 'units'), unit);
-        push(ref(db, 'history'), { action: `Выпущена единица ${id} для компании ${companyID}`, timestamp: new Date().toISOString() });
-      }
+  
+if (path.includes("issue.html")) {
+  document.getElementById('issueUnitsBtn').addEventListener('click', () => {
+    const companyID = document.getElementById('targetCompany').value;
+    const quantity = parseInt(document.getElementById('quantity').value);
+    const typeSelect = document.getElementById('unitType');
+    const expiryYear = document.getElementById('expiryYear').value;
+    const dateStr = new Date().toISOString().split('T')[0];
+    const issueYear = new Date().getFullYear();
+
+    // Получаем полное название типа
+    let typeFullName = "неизвестно";
+    switch (typeSelect.value) {
+      case "KZ":
+        typeFullName = "единица квоты";
+        break;
+      case "OF":
+        typeFullName = "офсетная единица";
+        break;
+      case "INT":
+        typeFullName = "международные углеродные единицы";
+        break;
+    }
+
+    for (let i = 0; i < quantity; i++) {
+      const id = generateCarbonUnitID(typeFullName, issueYear, expiryYear);
+      const unit = {
+        id,
+        issuedDate: dateStr,
+        firstOwner: companyID,
+        currentOwner: companyID,
+        expiryYear
+      };
+      push(ref(db, 'units'), unit);
+      push(ref(db, 'history'), { action: `Выпущена единица ${id} для компании ${companyID}`, timestamp: new Date().toISOString() });
+    }
+    showMessage(`Выпущено ${quantity} единиц`);
+  });
+}
       showMessage(`Выпущено ${quantity} единиц`);
     });
   }
